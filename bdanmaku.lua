@@ -4,7 +4,7 @@
 
 local CURL = mp.get_opt('curl_executable') or 'curl'
 local BILIASS = mp.get_opt('biliass_executable') or 'biliass'
-local TMPDIR = mp.get_opt('tmpdir') or '/tmp'
+local TMPDIR = mp.get_opt('tmpdir') or os.getenv('TMPDIR') or os.getenv('TMP') or '/tmp'
 local BILIASS_OPTS = {}
 for token in (mp.get_opt('biliass_options') or ''):gmatch('[^%s]+') do
 	BILIASS_OPTS[#BILIASS_OPTS + 1] = token
@@ -38,12 +38,12 @@ function download_xml()
 		'--compressed'
 	}
 	mp.msg.debug('curl_command: '..table.concat(curl_args, ' '))
-	local curl_result = utils.subprocess({args = curl_args})
+	local curl_result = utils.subprocess({capture_stderr = true, args = curl_args})
 	if curl_result.status == 0 then
 		mp.msg.debug('danmaku downloaded, will convert to ASS')
 	else
 		xml_filename = nil
-		mp.msg.warn('downloading XML danmaku from '..url..' failed: '..curl_result.error)
+		mp.msg.warn('downloading XML danmaku from '..url..' failed: '..curl_result.stderr)
 	end
 end
 
@@ -61,7 +61,7 @@ function replace_sub()
 		table.unpack(BILIASS_OPTS)
 	}
 	mp.msg.debug('biliass_command: '..table.concat(biliass_args, ' '))
-	local biliass_result = utils.subprocess({args = biliass_args})
+	local biliass_result = utils.subprocess({capture_stderr = true, args = biliass_args})
 	if biliass_result.status == 0 then
 		local sid = mp.get_property('track-list/'..danmaku_track_id..'/id')
 		mp.msg.debug('deleting original subtitle sid='..sid)
@@ -75,7 +75,7 @@ function replace_sub()
 			end
 		end
 	else
-		mp.msg.warn('converting XML danmaku from '..xml_filename..' to '..ass_filename..' failed: '..biliass_result.error)
+		mp.msg.warn('converting XML danmaku from '..xml_filename..' to '..ass_filename..' failed: '..biliass_result.stderr)
 	end
 end
 
